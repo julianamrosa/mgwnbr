@@ -2,6 +2,8 @@ mgwnbr <- function(DATA, YVAR, XVAR, WEIGHT=NULL, LAT, LONG,
                    GLOBALMIN="yes", METHOD, MODEL="GAUSSIAN",
                    MGWR="yes", BANDWIDTH="CV", OFFSET=NULL,
                    DISTANCEKM="NO", INT=50, H=NULL){
+  output <- list() #flag
+  header <- c()
   yhat_beta <<- NULL
   E <- 10
   Y <- DATA[, YVAR]
@@ -9,7 +11,8 @@ mgwnbr <- function(DATA, YVAR, XVAR, WEIGHT=NULL, LAT, LONG,
   N <<- length(Y)
   wt <<-rep(1, N)
   if (!is.null(WEIGHT)){
-    wt <<- as.matrix(WEIGHT)
+    wt <<- DATA[, WEIGHT]
+    wt <<- as.matrix(wt)
   }
   Offset <<- rep(0, N)
   if (!is.null(OFFSET)){
@@ -441,7 +444,6 @@ mgwnbr <- function(DATA, YVAR, XVAR, WEIGHT=NULL, LAT, LONG,
       h3 <- bx1
       h1 <- bx1-r*(bx1-ax1)
       h2 <- ax1+r*(bx1-ax1)
-      #print(c(h0, h1, h2, h3))
       res1 <- cv(h1, depy, indepx, fix)
       CV1 <- res1[1]
       res2 <- cv(h2,depy,indepx,fix)
@@ -465,7 +467,6 @@ mgwnbr <- function(DATA, YVAR, XVAR, WEIGHT=NULL, LAT, LONG,
           CV1 <- res1[1]
         }
         int <- int+1
-        #print(c(h0, h1, h2, h3, CV1, CV2))
       }
       if (CV1<CV2){
         golden <- CV1
@@ -488,8 +489,6 @@ mgwnbr <- function(DATA, YVAR, XVAR, WEIGHT=NULL, LAT, LONG,
         }
       }
       xming <- xmin[GMY, 2]
-      #print((xmin[GMY,2])['xmin']) --> verificar
-      #if (toupper(BANDWIDTH)=="AIC"){print(npar)}
     }
     #acrescentei:
     else{
@@ -503,7 +502,6 @@ mgwnbr <- function(DATA, YVAR, XVAR, WEIGHT=NULL, LAT, LONG,
         h3 <- bx1
         h1 <- bx1-r*(bx1-ax1)
         h2 <- ax1+r*(bx1-ax1)
-        #print(c(h0, h1, h2, h3))
         res1 <- cv(h1, depy, indepx, fix)
         CV1 <- res1[1]
         res2 <- cv(h2,depy,indepx,fix)
@@ -549,16 +547,11 @@ mgwnbr <- function(DATA, YVAR, XVAR, WEIGHT=NULL, LAT, LONG,
           }
         }
         xming <- xmin[GMY,2]
-        #print(golden)
-        #print((xmin[GMY,2])['xmin']) --> verificar
-        #if (toupper(BANDWIDTH)=="AIC"){print(npar)}
       }
     }
     #linha 426
     if (toupper(GLOBALMIN)=="YES"){
-      #print(xmin[c('golden', 'bandwidth')]) -->verificar
       xming <- xmin[which(xmin[,1]==min(xmin[,1])),2]
-      #print(c('Global Minimum', xming['(Da Silva and Mendes (2018)']) --> verificar
     }
     bandwidth <- xming
     return (bandwidth)
@@ -797,21 +790,21 @@ mgwnbr <- function(DATA, YVAR, XVAR, WEIGHT=NULL, LAT, LONG,
             ddev <- dev-olddev
           }
         }
-        if (nvar==nvarg){
+        if (nvar==nvarg){ #erro-padrão começa aqui
           if (det(t(x)%*%(w*ai*x*wt))==0){
             sm[i,] <<- rep(0, N)
             mrj[i,] <<- matrix(0, N*nvar)
           }
-          else{
+          else{ #daqui
             ej <- diag(nvar)
-            sm[i,] <<- (x[i,]%*%solve(t(x)%*%(w*ai*x*wt))%*%t(x*w*wt*ai))
+            sm[i,] <<- x[i,]%*%solve(t(x)%*%(w*ai*x*wt))%*%t(x*w*wt*ai)
             sm3[i,] <<- t(diag((solve(t(x)%*%(w*ai*x*wt))%*%t(x*w*wt*ai))%*%diag(1/ai)%*%t(solve(t(x)%*%(w*ai*x*wt))%*%t(x*w*wt*ai))))
             for (jj in 1:nvar){
               m1 <- (jj-1)*N+1
               m2 <- m1+(N-1)
               mrj[i, m1:m2] <<- (x[i,jj]*ej[jj,])%*%solve(t(x)%*%(w*ai*x*wt))%*%t(x*w*wt*ai)
             }
-          }
+          } #até aqui
         }
         else{
           if (det(t(x)%*%(w*ai*x*wt))==0){
@@ -820,7 +813,7 @@ mgwnbr <- function(DATA, YVAR, XVAR, WEIGHT=NULL, LAT, LONG,
           else{
             rj[i,] <<- (x[i,]%*%solve(t(x)%*%(w*ai*x*wt))%*%t(x*w*wt*ai))
           }
-        }
+        } #acaba aqui
       }
       m1 <- (i-1)*nvar+1
       m2 <- m1+(nvar-1)
@@ -842,7 +835,10 @@ mgwnbr <- function(DATA, YVAR, XVAR, WEIGHT=NULL, LAT, LONG,
     else{
       hh <- GSS(Y,X,finb)
     }
-    print(c("General Bandwidth", hh))
+    # print(c("General Bandwidth", hh))
+    header <- append(header, "General Bandwidth")
+    output <- append(output, hh) #flag
+    names(output) <- "general_bandwidth"
     yhat_beta <<- gwr(hh,Y,X,finb)
     beta <- yhat_beta[,2:(nvarg+1)]
     Fi <- X*beta
@@ -858,7 +854,10 @@ mgwnbr <- function(DATA, YVAR, XVAR, WEIGHT=NULL, LAT, LONG,
     else{
       hh <- GSS(Y,X,finb)
     }
-    print(c("General Bandwidth", hh))
+    # print(c("General Bandwidth", hh))
+    header <- append(header, "General Bandwidth")
+    output <- append(output, hh) #flag
+    names(output) <- "general_bandwidth"
     #computing residuals
     #linha 672
     yhat_beta <<- gwr(hh, Y, X, finb)
@@ -869,7 +868,6 @@ mgwnbr <- function(DATA, YVAR, XVAR, WEIGHT=NULL, LAT, LONG,
     for (jj in 1:nvarg){
       m1 <- (jj-1)*N+1
       m2 <- m1+(N-1)
-      #print (trace(mrj[,m1:m2]))
     }
     mband <- rep(hh, nvarg)
     socf <- 1
@@ -909,9 +907,7 @@ mgwnbr <- function(DATA, YVAR, XVAR, WEIGHT=NULL, LAT, LONG,
           }
           yhat_beta <<- gwr(mband[i], Y, as.matrix(X[,i]), Fi[,i])
           beta[,i] <- yhat_beta[,2]
-          #print (yhat_beta[:])(_beta_[:,]) (alphai[:,2])
           Fi[,i] <- X[,i]*beta[,i]
-          #error=Y-exp(Fi[,+]+Offset)
           m1 <- (i-1)*N+1
           m2 <- m1+(N-1)
           mrj2 <- mrj[,m1:m2]
@@ -923,7 +919,7 @@ mgwnbr <- function(DATA, YVAR, XVAR, WEIGHT=NULL, LAT, LONG,
         diffi <- diffi+mean((Fi[,i]-fi_old[,i])^2)
         fi2 <- fi2+Fi[,i]
       }
-      socf <- sqrt(diffi/sum(fi2^2)) #printar
+      socf <- sqrt(diffi/sum(fi2^2))
       int <- int+1
       mband_socf <- rbind(mband_socf, c(mband, socf))
     } #linha 750
@@ -936,8 +932,11 @@ mgwnbr <- function(DATA, YVAR, XVAR, WEIGHT=NULL, LAT, LONG,
     }
     names(band) <<- c("Intercept", XVAR, "socf")
     rownames(band) <<- NULL
-    print('Bandwidth')
-    print(band)
+    # print('Bandwidth')
+    # print(band)
+    header <- append(header, "Bandwidth")
+    output <- append(output, list(band))
+    names(output)[length(output)] <- "band"
   }
   v1 <- sum(diag(sm))
   if (toupper(MODEL)=='GAUSSIAN'){
@@ -954,7 +953,6 @@ mgwnbr <- function(DATA, YVAR, XVAR, WEIGHT=NULL, LAT, LONG,
   for (jj in 1:nvarg){
     m1 <- (jj-1)*N+1
     m2 <- m1+(N-1)
-    #print (trace(mrj[,m1:m2]))
     ENP[jj] <- sum(diag(mrj[,m1:m2]))
     if (toupper(MGWR)!='YES'){
       ENP[jj] <- sum(diag(sm))
@@ -976,22 +974,36 @@ mgwnbr <- function(DATA, YVAR, XVAR, WEIGHT=NULL, LAT, LONG,
       }
     }
   } #linha 789
-  # print("Rep 4")
-  # print(Cm[,m1:m2][1:5, 1:5]%*%diag(1/mAi[,4])[1:5, 1:5]%*%t(Cm[,m1:m2][1:5, 1:5]))
-  # 
-  # print("Rep 5")
-  # print(Cm[,m1:m2][1:5, 1:5]%*%diag(1/mAi[,5])[1:5, 1:5]%*%t(Cm[,m1:m2][1:5, 1:5]))
-  # 
-  # print("Rep 6")
-  # print(Cm[,m1:m2][1:5, 1:5]%*%diag(1/mAi[,6])[1:5, 1:5]%*%t(Cm[,m1:m2][1:5, 1:5]))
-  
   if (toupper(MODEL)=='GAUSSIAN'){
     ll <- -N*log(rsqr1/N)/2-N*log(2*acos(-1))/2-sum((Y-yhat)*(Y-yhat))/(2*(rsqr1/N))
     AIC <- 2*v1-2*ll
     AICc <- AIC+2*(v1*(v1+1)/(N-v1-1))
-    print(rbind(c('Sigma2e', 'Root MSE'), c(sigma2, root_mse)))
-    print(rbind(c('R-Square', 'Adj-R-Square'), c(round(rsqr, 4), round(rsqradj, 4))))
-    print(rbind(c('Full Log Likelihood', 'AIC', 'AICc'), c(ll, AIC, AICc)))
+    # print(rbind(c('Sigma2e', 'Root MSE'), c(sigma2, root_mse)))
+    # print(rbind(c('R-Square', 'Adj-R-Square'), c(round(rsqr, 4), round(rsqradj, 4))))
+    # print(rbind(c('Full Log Likelihood', 'AIC', 'AICc'), c(ll, AIC, AICc)))
+    stats_measures <- c(sigma2, root_mse, round(rsqr, 4),
+                        round(rsqradj, 4), ll, AIC, AICc)
+    names(stats_measures) <- c("sigma2e", "root_mse",
+                               "R_square", "Adj_R_square",
+                               "full_Log_likelihood",
+                               "AIC", "AICc")
+    header <- append(header, "Measures")
+    output <- append(output, list(stats_measures))
+    names(output)[length(output)] <- "measures"
+    # output <- append(output, sigma2)
+    # names(output)[length(output)] <- "sigma2e"
+    # output <- append(output, root_mse)
+    # names(output)[length(output)] <- "root_mse"
+    # output <- append(output, round(rsqr, 4))
+    # names(output)[length(output)] <- "R_square"
+    # output <- append(output, round(rsqradj, 4))
+    # names(output)[length(output)] <- "Adj_R_square"
+    # output <- append(output, ll)
+    # names(output)[length(output)] <- "full_Log_likelihood"
+    # output <- append(output, AIC)
+    # names(output)[length(output)] <- "AIC"
+    # output <- append(output, AICc)
+    # names(output)[length(output)] <- "AICc"
   } #linha 798
   else if (toupper(MODEL)=='POISSON'){
     yhat <- exp(apply(Fi, 1, sum)+Offset)
@@ -1006,10 +1018,31 @@ mgwnbr <- function(DATA, YVAR, XVAR, WEIGHT=NULL, LAT, LONG,
     devnull <- 2*sum(Y*log(tt2)-(Y-mean(Y)))
     pctdev <- 1-dev/devnull
     adjpctdev <- 1-((N-1)/(N-v1))*(1-pctdev)
-    print(c('Deviance', dev))
-    print(c('Full Log Likelihood', ll))
-    print(c('pctdev', 'adjpctdev', 'AIC', 'AICc'))
-    print(c(pctdev, adjpctdev, AIC, AICc))
+    # print(c('Deviance', dev))
+    # print(c('Full Log Likelihood', ll))
+    # print(c('pctdev', 'adjpctdev', 'AIC', 'AICc'))
+    # print(c(pctdev, adjpctdev, AIC, AICc))
+    stats_measures <- c(dev, ll, pctdev, adjpctdev, AIC,
+                        AICc)
+    names(stats_measures) <- c("deviance",
+                               "full_Log_likelihood",
+                               "pctdev", "adjpctdev",
+                               "AIC", "AICc")
+    header <- append(header, "Measures")
+    output <- append(output, list(stats_measures))
+    names(output)[length(output)] <- "measures"
+    # output <- append(output, dev) #flag
+    # names(output)[length(output)] <- "deviance"
+    # output <- append(output, ll)
+    # names(output)[length(output)] <- "full_Log_likelihood"
+    # output <- append(output, pctdev)
+    # names(output)[length(output)] <- "pctdev"
+    # output <- append(output, adjpctdev)
+    # names(output)[length(output)] <- "adjpctdev"
+    # output <- append(output, AIC)
+    # names(output)[length(output)] <- "AIC"
+    # output <- append(output, AICc)
+    # names(output)[length(output)] <- "AICc"
   }
   else if (toupper(MODEL)=='NEGBIN'){
     yhat <- exp(apply(Fi, 1, sum)+Offset)
@@ -1024,10 +1057,31 @@ mgwnbr <- function(DATA, YVAR, XVAR, WEIGHT=NULL, LAT, LONG,
     devnull <- 2*sum(Y*log(tt2)-(Y+1/alphai[,2])*log((1+alphai[,2]*Y)/(1+alphai[,2]*mean(Y))))
     pctdev <- 1-dev/devnull
     adjpctdev <- 1-((N-1)/(N-(v1+v1/nvarg)))*(1-pctdev)
-    print(c('Deviance', dev))
-    print(c('Full Log Likelihood', ll))
-    print(c('pctdev', 'adjpctdev', 'AIC', 'AICc'))
-    print(c(pctdev, adjpctdev, AIC, AICc))
+    # print(c('Deviance', dev))
+    # print(c('Full Log Likelihood', ll))
+    # print(c('pctdev', 'adjpctdev', 'AIC', 'AICc'))
+    # print(c(pctdev, adjpctdev, AIC, AICc))
+    stats_measures <- c(dev, ll, pctdev, adjpctdev, AIC,
+                        AICc)
+    names(stats_measures) <- c("deviance",
+                               "full_Log_likelihood",
+                               "pctdev", "adjpctdev",
+                               "AIC", "AICc")
+    header <- append(header, "Measures")
+    output <- append(output, list(stats_measures))
+    names(output)[length(output)] <- "measures"
+    # output <- append(output, dev) #flag
+    # names(output)[length(output)] <- "deviance"
+    # output <- append(output, ll)
+    # names(output)[length(output)] <- "full_Log_likelihood"
+    # output <- append(output, pctdev)
+    # names(output)[length(output)] <- "pctdev"
+    # output <- append(output, adjpctdev)
+    # names(output)[length(output)] <- "adjpctdev"
+    # output <- append(output, AIC)
+    # names(output)[length(output)] <- "AIC"
+    # output <- append(output, AICc)
+    # names(output)[length(output)] <- "AICc"
   }
   else{ #else if (toupper(MODEL)=='LOGISTIC'){
     yhat <- exp(apply(Fi, 1, sum))/(1+exp(apply(Fi, 1, sum)))
@@ -1049,22 +1103,50 @@ mgwnbr <- function(DATA, YVAR, XVAR, WEIGHT=NULL, LAT, LONG,
     devnull <- 2*sum((Y*log(tt))+(1-Y)*log(tt2))
     pctdev <- 1-dev/devnull
     adjpctdev <- 1-((N-1)/(N-v1))*(1-pctdev)
-    print(c('Deviance', dev))
-    print(c('Full Log Likelihood', ll))
-    print(c('pctdev', 'adjpctdev', 'AIC', 'AICc'))
-    print(c(pctdev, adjpctdev, AIC, AICc))
+    # print(c('Deviance', dev))
+    # print(c('Full Log Likelihood', ll))
+    # print(c('pctdev', 'adjpctdev', 'AIC', 'AICc'))
+    # print(c(pctdev, adjpctdev, AIC, AICc))
+    stats_measures <- c(dev, ll, pctdev, adjpctdev, AIC,
+                        AICc)
+    names(stats_measures) <- c("deviance",
+                               "full_Log_likelihood",
+                               "pctdev", "adjpctdev",
+                               "AIC", "AICc")
+    header <- append(header, "Measures")
+    output <- append(output, list(stats_measures))
+    names(output)[length(output)] <- "measures"
+    # output <- append(output, dev) #flag
+    # names(output)[length(output)] <- "deviance"
+    # output <- append(output, ll)
+    # names(output)[length(output)] <- "full_Log_likelihood"
+    # output <- append(output, pctdev)
+    # names(output)[length(output)] <- "pctdev"
+    # output <- append(output, adjpctdev)
+    # names(output)[length(output)] <- "adjpctdev"
+    # output <- append(output, AIC)
+    # names(output)[length(output)] <- "AIC"
+    # output <- append(output, AICc)
+    # names(output)[length(output)] <- "AICc"
   } #linha 848
   ENP[nvarg+1] <- sum(diag(sm))
   ENP[nvarg+2] <- sum(diag(Sm2))
-  varname_enp <- c('Intercept', XVAR, 'MGWR', 'GWR')
+  #varname_enp <- c('Intercept', XVAR, 'MGWR', 'GWR')
   if (toupper(MODEL)=='NEGBIN'){
     ENP <- c(ENP, (v1/nvarg))
-    varname_enp <- c(varname_enp, 'alpha')
+    #varname_enp <- c(varname_enp, 'alpha')
+    names(ENP) <- c('Intercept', XVAR, 'MGWR', 'GWR', 'alpha') #flag
   }
-  ENPprint <- rbind(varname_enp, ENP)
-  rownames(ENPprint) <- NULL
-  print('ENP')
-  print(ENPprint)
+  else{
+    names(ENP) <- c('Intercept', XVAR, 'MGWR', 'GWR')
+  }
+  #ENPprint <- rbind(varname_enp, ENP)
+  #rownames(ENPprint) <- NULL
+  # print('ENP')
+  # print(ENP) #flag
+  header <- append(header, "ENP")
+  output <- append(output, list(ENP)) #flag
+  names(output)[length(output)] <- "ENP"
   dff <- N-v1
   tstat <- beta/stdbm
   probt <- 2*(1-pt(abs(tstat), dff))
@@ -1089,22 +1171,28 @@ mgwnbr <- function(DATA, YVAR, XVAR, WEIGHT=NULL, LAT, LONG,
   qntl <- rbind(round(qntl, 3), IQR=round(IQR, 3))
   descriptb <- rbind(apply(beta2, 2, mean), apply(beta2, 2, min), apply(beta2, 2, max))
   rownames(descriptb) <- c('Mean', 'Min', 'Max')
-  print("Quantiles of MGWR Parameter Estimates")
+  # print("Quantiles of MGWR Parameter Estimates")
   if (toupper(MODEL)=='NEGBIN'){
     colnames(qntl) <- c('Intercept', XVAR, 'alpha')
   }
   else{
     colnames(qntl) <- c('Intercept', XVAR)
   }
-  print(qntl)
-  print("Descriptive Statistics")
+  # print(qntl)
+  header <- append(header, "Quantiles of MGWR Parameter Estimates")
+  output <- append(output, list(qntl)) #flag
+  names(output)[length(output)] <- "qntls_mgwr_param_estimates"
+  # print("Descriptive Statistics")
   if (toupper(MODEL)=='NEGBIN'){
     colnames(descriptb) <- c('Intercept', XVAR, 'alpha')
   }
   else{
     colnames(descriptb) <- c('Intercept', XVAR)
   }
-  print(descriptb)
+  # print(descriptb)
+  header <- append(header, "Descriptive Statistics")
+  output <- append(output, list(descriptb)) #flag
+  names(output)[length(output)] <- "descript_stats_mgwr_param_estimates"
   stdbeta <- stdbm
   stdbeta2 <- stdbeta
   if (toupper(MODEL)=='NEGBIN'){
@@ -1116,31 +1204,44 @@ mgwnbr <- function(DATA, YVAR, XVAR, WEIGHT=NULL, LAT, LONG,
   qntls <- rbind(round(qntls, 3), IQR=round(IQR, 3))
   descripts <- rbind(apply(stdbeta2, 2, mean), apply(stdbeta2, 2, min), apply(stdbeta2, 2, max))
   rownames(descripts) <- c('Mean', 'Min', 'Max')
-  print("alpha-level=0.05")
-  alpha_levelprint <- rbind(varname_enp, malpha)
-  rownames(alpha_levelprint) <- NULL
-  
-  print(alpha_levelprint)
-  print("t-Critical")
-  tcritical_print <- rbind(varname_enp, round(t_critical, 2))
-  rownames(tcritical_print) <- NULL
-  print(tcritical_print)
-  print("Quantiles of MGWR Standard Errors")
+  # print("alpha-level=0.05")
+  #alpha_levelprint <- rbind(varname_enp, malpha)
+  #rownames(alpha_levelprint) <- NULL
+  #print(alpha_levelprint)
+  #print(malpha) #flag
+  header <- append(header, "alpha-level=0.05")
+  output <- append(output, list(malpha))
+  names(output)[length(output)] <- "p_values"
+  #print("t-Critical")
+  #tcritical_print <- rbind(varname_enp, round(t_critical, 2))
+  #rownames(tcritical_print) <- NULL
+  t_critical <- round(t_critical, 2) #flag
+  #print(t_critical)
+  header <- append(header, "t-Critical")
+  output <- append(output, list(t_critical))
+  names(output)[length(output)] <- "t_critical"
+  #print("Quantiles of MGWR Standard Errors")
   if (toupper(MODEL)=='NEGBIN'){
     colnames(qntls) <- c('Intercept', XVAR, 'alpha')
   }
   else{
     colnames(qntls) <- c('Intercept', XVAR)
   }
-  print(qntls)
-  print("Descriptive Statistics of Standard Errors")
+  #print(qntls)
+  header <- append(header, "Quantiles of MGWR Standard Errors")
+  output <- append(output, list(qntls)) #flag
+  names(output)[length(output)] <- "qntls_mgwr_se"
+  #print("Descriptive Statistics of Standard Errors")
   if (toupper(MODEL)=='NEGBIN'){
     colnames(descripts) <- c('Intercept', XVAR, 'alpha')
   }
   else{
     colnames(descripts) <- c('Intercept', XVAR)
   }
-  print(descripts) #linha 902
+  #print(descripts) #linha 902
+  header <- append(header, "Descriptive Statistics of Standard Errors")
+  output <- append(output, list(descripts)) #flag
+  names(output)[length(output)] <- "descripts_stats_se"
   #### global estimates ####
   if (toupper(MODEL)=='GAUSSIAN'){
     bg <- solve(t(X)%*%(X*wt))%*%t(X)%*%(Y*wt)
@@ -1160,7 +1261,7 @@ mgwnbr <- function(DATA, YVAR, XVAR, WEIGHT=NULL, LAT, LONG,
   tg <- bg/stdg
   probtg <- 2*(1-pt(abs(tg), dfg))
   bg_stdg_tg_probtg <- cbind(bg, stdg, tg, probtg)
-  print("Global Parameter Estimates")
+  #print("Global Parameter Estimates")
   if (toupper(MODEL)=='NEGBIN'){
     rownames(bg_stdg_tg_probtg) <- c('Intercept', XVAR, 'alpha')
   }
@@ -1168,8 +1269,14 @@ mgwnbr <- function(DATA, YVAR, XVAR, WEIGHT=NULL, LAT, LONG,
     rownames(bg_stdg_tg_probtg) <- c('Intercept', XVAR)
   }
   colnames(bg_stdg_tg_probtg) <- c("Par. Est.", "Std Error", "t Value", "Pr > |t|")
-  print(bg_stdg_tg_probtg)
-  print(c("NOTE: The denominator degrees of freedom for the t tests is", dfg))
+  #print(bg_stdg_tg_probtg)
+  header <- append(header, "Global Parameter Estimates")
+  output <- append(output, list(bg_stdg_tg_probtg)) #flag
+  names(output)[length(output)] <- "global_param_estimates"
+  #print(c("NOTE: The denominator degrees of freedom for the t tests is", dfg))
+  header <- append(header, "NOTE: The denominator degrees of freedom for the t tests is...")
+  output <- append(output, list(dfg)) #flag
+  names(output)[length(output)] <- "t_test_dfs"
   if (toupper(MODEL)=='GAUSSIAN'){
     resg <- (Y-X%*%bg)
     rsqr1g <- t(resg*wt)%*%resg
@@ -1179,12 +1286,17 @@ mgwnbr <- function(DATA, YVAR, XVAR, WEIGHT=NULL, LAT, LONG,
     rsqradjg <- 1-((N-1)/(N-nrow(bg)))%*%(1-rsqrg)
     sigma2g <- N*rsqr1g/((N-nrow(bg))*sum(wt))
     root_mseg <- sqrt(sigma2g)
-    print(rbind(c('Sigma2e', 'Root MSE'), c(sigma2g, root_mseg)))
-    print(rbind(c("R-Square", "Adj-R-Square"), round(c(rsqrg, rsqradjg), 4)))
+    #print(rbind(c('Sigma2e', 'Root MSE'), c(sigma2g, root_mseg)))
+    #print(rbind(c("R-Square", "Adj-R-Square"), round(c(rsqrg, rsqradjg), 4)))
     ll <- -N*log(rsqr1g/N)/2-N*log(2*acos(-1))/2-sum(resg*resg)/(2*(rsqr1g/N))
     AIC <- -2*ll+2*nrow(bg)
     AICc <- -2*ll+2*nrow(bg)*(N/(N-nrow(bg)-1))
-    print(rbind(c('Full Log Likelihood', 'AIC', 'AICc'), c(ll, AIC, AICc)))
+    #print(rbind(c('Full Log Likelihood', 'AIC', 'AICc'), c(ll, AIC, AICc)))
+    global_measures <- c(sigma2g, root_mseg, round(c(rsqrg, rsqradjg), 4), ll, AIC, AICc) #flag
+    names(global_measures) <- c('sigma2e', 'root_mse', "R_square", "Adj_R_square", 'full_Log_likelihood', 'AIC', 'AICc')
+    header <- append(header, "Global Measures")
+    output <- append(output, list(global_measures))
+    names(output)[length(output)] <- "global_measures"
   }
   else if (toupper(MODEL)=='POISSON'){
     yhatg <- exp(X%*%bg+Offset)
@@ -1196,9 +1308,15 @@ mgwnbr <- function(DATA, YVAR, XVAR, WEIGHT=NULL, LAT, LONG,
     devnullg <- 2*sum(Y*log(tt2)-(Y-mean(Y)))
     pctdevg <- 1-devg/devnullg
     adjpctdevg <- 1-((N-1)/(N-nvarg))*(1-pctdevg)
-    print(rbind(c('Deviance', 'Full Log Likelihood',
-                  'pctdevg', 'adjpctdevg', 'AIC', 'AICc'),
-                c(devg, ll, pctdevg, adjpctdevg, AIC, AICc)))
+    # print(rbind(c('Deviance', 'Full Log Likelihood',
+    #               'pctdevg', 'adjpctdevg', 'AIC', 'AICc'),
+    #             c(devg, ll, pctdevg, adjpctdevg, AIC, AICc)))
+    global_measures <- c(devg, ll, pctdevg, adjpctdevg, AIC, AICc) #flag
+    names(global_measures) <- c('deviance', 'full_Log_likelihood', 'pctdevg',
+                                'adjpctdevg', 'AIC', 'AICc')
+    header <- append(header, "Global Measures")
+    output <- append(output, list(global_measures))
+    names(output)[length(output)] <- "global_measures"
   }
   else if (toupper(MODEL)=='NEGBIN'){
     yhatg <- exp(X%*%bg[1:(nrow(bg)-1)]+Offset)
@@ -1210,9 +1328,15 @@ mgwnbr <- function(DATA, YVAR, XVAR, WEIGHT=NULL, LAT, LONG,
     devnullg <- 2*sum(Y*log(tt2)-(Y+1/alphag)*log((1+alphag*Y)/(1+alphag*mean(Y))))
     pctdevg <- 1-devg/devnullg
     adjpctdevg <- 1-((N-1)/(N-nvarg))*(1-pctdevg)
-    print(rbind(c('Deviance', 'Full Log Likelihood', 'pctdevg',
-                  'adjpctdevg', 'AIC', 'AICc'),
-                c(devg, ll, pctdevg, adjpctdevg, AIC, AICc)))
+    # print(rbind(c('Deviance', 'Full Log Likelihood', 'pctdevg',
+    #               'adjpctdevg', 'AIC', 'AICc'),
+    #             c(devg, ll, pctdevg, adjpctdevg, AIC, AICc)))
+    global_measures <- c(devg, ll, pctdevg, adjpctdevg, AIC, AICc) #flag
+    names(global_measures) <- c('deviance', 'full_Log_likelihood', 'pctdevg',
+                                'adjpctdevg', 'AIC', 'AICc')
+    header <- append(header, "Global Measures")
+    output <- append(output, list(global_measures))
+    names(output)[length(output)] <- "global_measures"
   }
   else{ #else if (toupper(MODEL)=='LOGISTIC'){
     yhatg <- exp(X%*%bg)/(1+exp(X%*%bg))
@@ -1228,9 +1352,15 @@ mgwnbr <- function(DATA, YVAR, XVAR, WEIGHT=NULL, LAT, LONG,
     devnullg <- 2*sum((Y*log(tt))+(1-Y)*log(tt2))
     pctdevg <- 1-devg/devnullg
     adjpctdevg <- 1-((N-1)/(N-nvarg))*(1-pctdevg)
-    print(rbind(c('Deviance', 'Full Log Likelihood',
-                  'pctdevg', 'adjpctdevg', 'AIC', 'AICc'),
-                c(devg, ll, pctdevg, adjpctdevg, AIC, AICc)))
+    # print(rbind(c('Deviance', 'Full Log Likelihood',
+    #               'pctdevg', 'adjpctdevg', 'AIC', 'AICc'),
+    #             c(devg, ll, pctdevg, adjpctdevg, AIC, AICc)))
+    global_measures <- c(devg, ll, pctdevg, adjpctdevg, AIC, AICc) #flag
+    names(global_measures) <- c('deviance', 'full_Log_likelihood', 'pctdevg',
+                                'adjpctdevg', 'AIC', 'AICc')
+    header <- append(header, "Global Measures")
+    output <- append(output, list(global_measures))
+    names(output)[length(output)] <- "global_measures"
   } #linha 981
   bistdt <- cbind(COORD, beta, stdbm, tstat, probt)
   colname1 <- c("Intercept", XVAR)
@@ -1291,4 +1421,12 @@ mgwnbr <- function(DATA, YVAR, XVAR, WEIGHT=NULL, LAT, LONG,
   if (toupper(MODEL)=='NEGBIN'){
     Alpha <<- cbind(Alpha, sig_alpha)
   }
+  #print(output)
+  i <- 1
+  for (element in output){
+    cat(header[i], "\n")
+    print(element)
+    i <- i+1
+  }
+  invisible(output)
 }
