@@ -1,0 +1,15 @@
+Package: mgwnbr
+Type: Package
+Title: Multiscale Geographically Weighted Negative Binomial Regression
+Version: 0.1.0
+Authors@R: c(
+	person("Juliana", "Rosa", , "julianamrosa00@gmail.com", role=c("aut", "cre")),
+	person("Alan", "da Silva", , "alansilva@unb.br", role="aut"))
+Maintainer: Juliana Rosa <julianamrosa00@gmail.com>
+Description: Fits a geographically weighted regression model with different scales for each covariate. Uses the negative binomial distribution as default, but also accepts the normal, Poisson, or logistic distributions. Can fit the global versions of each regression and also the geographically weighted alternatives with only one scale, since they are all particular cases of the multiscale approach.
+License: GPL-3
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.3
+Imports: spgwr
+LazyData: true
