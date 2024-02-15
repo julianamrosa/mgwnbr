@@ -32,7 +32,7 @@ mgwnbr(
 
 \item{long}{name of the variable containing the longitudes in the dataset.}
 
-\item{globalmin}{logical value indicating whether to find a global minimum in the optimization process \citep{dasilva2018}, default value is \code{TRUE}.}
+\item{globalmin}{logical value indicating whether to find a global minimum in the optimization process, default value is \code{TRUE}.}
 
 \item{method}{indicates the method to be used for the bandwidth calculation (\code{adaptive\_bsq}, \code{fixed\_bsq}, \code{fixed\_g}).}
 
@@ -78,19 +78,21 @@ Fits a geographically weighted regression model with different scales for each c
 
 data(georgia)
 
-for (var in c("TotPop90", "PctEld", "PctFB", "PctBlack")){
+for (var in c("PctFB", "PctBlack")){
   georgia[, var] <- as.data.frame(scale(georgia[, var]))
 }
 
-georgia$PctBach <- as.integer(georgia$PctBach)
 
 ## Model
 
-mod <- mgwnbr(data=georgia_std, formula=PctBach~PctBlack+PctFB+TotPop90+PctEld, lat="Y", long="X", globalmin=FALSE, method="adaptive_bsq", bandwidth="cv", model="gaussian")
+mod <- mgwnbr(data=georgia, formula=PctBach~PctBlack+PctFB,
+ lat="Y", long="X", globalmin=FALSE, method="adaptive_bsq", bandwidth="cv",
+  model="gaussian", mgwr=FALSE, h=136)
 
 ## Bandwidths
-mod$band
+mod$general_bandwidth
 
 ## Goodness of fit measures
 mod$measures
+
 }

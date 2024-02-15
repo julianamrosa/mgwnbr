@@ -7,7 +7,7 @@
 #' @param weight name of the variable containing the sample weights, default value is \code{NULL}.
 #' @param lat name of the variable containing the latitudes in the dataset.
 #' @param long name of the variable containing the longitudes in the dataset.
-#' @param globalmin logical value indicating whether to find a global minimum in the optimization process \citep{dasilva2018}, default value is \code{TRUE}.
+#' @param globalmin logical value indicating whether to find a global minimum in the optimization process, default value is \code{TRUE}.
 #' @param method indicates the method to be used for the bandwidth calculation (\code{adaptive\_bsq}, \code{fixed\_bsq}, \code{fixed\_g}).
 #' @param model indicates the model to be used for the regression (\code{gaussian}, \code{poisson}, \code{negbin}, \code{logistic}), default value is\code{"negbin"}.
 #' @param mgwr logical value indicating if multiscale should be used (\code{TRUE}, \code{FALSE}), default value is \code{TRUE}.
@@ -41,31 +41,39 @@
 #'
 #' data(georgia)
 #'
-#' for (var in c("TotPop90", "PctEld", "PctFB", "PctBlack")){
+#' for (var in c("PctFB", "PctBlack")){
 #'   georgia[, var] <- as.data.frame(scale(georgia[, var]))
 #' }
 #'
-#' georgia$PctBach <- as.integer(georgia$PctBach)
 #'
 #' ## Model
 #'
-#' mod <- mgwnbr(data=georgia_std, formula=PctBach~PctBlack+PctFB+TotPop90+PctEld, lat="Y", long="X", globalmin=FALSE, method="adaptive_bsq", bandwidth="cv", model="gaussian")
+#' mod <- mgwnbr(data=georgia, formula=PctBach~PctBlack+PctFB,
+#'  lat="Y", long="X", globalmin=FALSE, method="adaptive_bsq", bandwidth="cv",
+#'   model="gaussian", mgwr=FALSE, h=136)
 #'
 #' ## Bandwidths
-#' mod$band
+#' mod$general_bandwidth
 #'
 #' ## Goodness of fit measures
 #' mod$measures
+#'
+#' @importFrom sp spDistsN1
+#'
+#' @importFrom stats model.extract model.matrix pnorm pt qt quantile
+#'
+#'
 #' @export
 
 mgwnbr <- function(data, formula, weight=NULL, lat, long,
-                   globalmin=TRUE, method, model="negbin",
-                   mgwr=TRUE, bandwidth="cv", offset=NULL,
-                   distancekm=FALSE, int=50, h=NULL){
+                    globalmin=TRUE, method, model="negbin",
+                    mgwr=TRUE, bandwidth="cv", offset=NULL,
+                    distancekm=FALSE, int=50, h=NULL){
   output <- list()
   header <- c()
-  yhat_beta <<- NULL
+  yhat_beta <- NULL
   E <- 10
+  max_dist <- 0
   mf <- match.call(expand.dots = FALSE)
   m <- match(c("formula", "data"), names(mf), 0)
   mf <- mf[c(1, m)]
@@ -77,23 +85,23 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
   Y <- model.extract(mf, "response")
   N <- length(Y)
   X <- model.matrix(mt, mf)
-  wt <<-rep(1, N)
+  wt <-rep(1, N)
   if (!is.null(weight)){
-    wt <<- unlist(data[, weight])
+    wt <- unlist(data[, weight])
   }
-  Offset <<- rep(0, N)
+  Offset <- rep(0, N)
   if (!is.null(offset)){
     Offset <- unlist(data[, offset])
   }
-  nvarg <<- ncol(X)
+  nvarg <- ncol(X)
   yhat <- rep(0, N)
   bi <- matrix(0, nvarg*N, 4)
-  alphai <<- matrix(0, N, 3)
-  s <<- rep(0, N)
-  mrj <<- matrix(0, N, N*nvarg)
-  sm <<- matrix(0, N, N)
-  sm3 <<- matrix(0, N, nvarg)
-  rj <<- matrix(0, N, N)
+  alphai <- matrix(0, N, 3)
+  s <- rep(0, N)
+  mrj <- matrix(0, N, N*nvarg)
+  sm <- matrix(0, N, N)
+  sm3 <- matrix(0, N, nvarg)
+  rj <- matrix(0, N, N)
   Cm <- matrix(0, N, N*nvarg)
   stdbm <- matrix(0, N, nvarg)
   mAi <- matrix(0, N, nvarg)
@@ -102,7 +110,7 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
   if (model=="poisson" | model=="negbin"){
     uj <- (Y+mean(Y))/2
     nj <- log(uj)
-    parg <<- sum((Y-uj)^2/uj)/(N-nvarg)
+    parg <- sum((Y-uj)^2/uj)/(N-nvarg)
     ddpar <- 1
     cont <- 1
     while (abs(ddpar)>0.000001 & cont<100){
@@ -111,28 +119,28 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
       cont1 <- 1
       cont3 <- 1
       if(model=="poisson"){
-        alphag <<- E^-6
-        parg <<- 1/alphag
+        alphag <- E^-6
+        parg <- 1/alphag
       }
       else{
         if (cont>1){
-          parg <<- 1/(sum((Y-uj)^2/uj)/(N-nvarg))
+          parg <- 1/(sum((Y-uj)^2/uj)/(N-nvarg))
         }
         while (abs(dpar)>0.000001 & cont1<200){
-          parg <<- ifelse(parg<E^-10, E^-10, parg)
+          parg <- ifelse(parg<E^-10, E^-10, parg)
           g <- sum(digamma(parg+Y)-digamma(parg)+log(parg)+1-log(parg+uj)-(parg+Y)/(parg+uj))
           hess <- sum(trigamma(parg+Y)-trigamma(parg)+1/parg-2/(parg+uj)+(Y+parg)/(parg+uj)^2)
           hess <- ifelse(hess==0, E^-23, hess)
           par0 <- parg
-          parg <<- par0-solve(hess)%*%g
+          parg <- par0-solve(hess)%*%g
           if (cont1>50 & parg>E^5){
             dpar <- 0.0001
             cont3 <- cont3+1
             if (cont3==1){
-              parg <<- 2
+              parg <- 2
             }
             else if (cont3==2){
-              parg <<- E^5
+              parg <- E^5
             }
             else if (cont3==3){
               parg <- 0.0001
@@ -143,19 +151,19 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
           }
           cont1 <- cont1+1
           if (parg>E^6){
-            parg <<- E^6
+            parg <- E^6
             dpar <- 0
           }
         }
-        alphag <<- as.vector(1/parg)
+        alphag <- as.vector(1/parg)
       }
       devg <- 0
       ddev <- 1
       cont2 <- 0
       while (abs(ddev)>0.000001 & cont2<100){
         uj <- ifelse(uj>E^100, E^100, uj)
-        ai <<- as.vector((uj/(1+alphag*uj))+(Y-uj)*(alphag*uj/(1+2*alphag*uj+alphag^2*uj*uj)))
-        ai <<- ifelse(ai<=0, E^-5, ai)
+        ai <- as.vector((uj/(1+alphag*uj))+(Y-uj)*(alphag*uj/(1+2*alphag*uj+alphag^2*uj*uj)))
+        ai <- ifelse(ai<=0, E^-5, ai)
         zj <- nj+(Y-uj)/(ai*(1+alphag*uj))-Offset
         if (det(t(X)%*%(ai*X))==0){
           bg <- rep(0, nvarg)
@@ -185,7 +193,7 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
         }
         cont2 <- cont2+1
       }
-      ujg <<- uj
+      ujg <- uj
       yhat <- uj
       cont <- cont+1
       ddpar <- parg-parold
@@ -200,8 +208,8 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
     cont <- 0
     while (abs(ddev)>0.000001 & cont<100){
       uj <- ifelse(uj>E^100, E^100, uj)
-      ai <<- as.vector(uj*(1-uj))
-      ai <<- ifelse(ai<=0, E^-5, ai)
+      ai <- as.vector(uj*(1-uj))
+      ai <- ifelse(ai<=0, E^-5, ai)
       zj <- nj+(Y-uj)/ai
       if (det(t(X)%*%(wt*ai*X))==0){
         bg <- rep(0, nvarg)
@@ -223,14 +231,14 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
       ddev <- devg-olddev
       cont <- cont+1
     }
-    ujg <<- uj
+    ujg <- uj
     yhat <- uj
     varg <- diag(solve(t(X*wt*ai)%*%X))
   }
   long <- unlist(data[, long])
   lat <- unlist(data[, lat])
-  COORD <<- matrix(c(long, lat), ncol=2)
-  sequ <<- 1:N
+  COORD <- matrix(c(long, lat), ncol=2)
+  sequ <- 1:N
   cv <- function(H, y, x, fi){
     nvar <- ncol(x)
     for (i in 1:N){
@@ -281,12 +289,16 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
         else{
           b <- solve(t(x)%*%(w*x*wt))%*%t(x)%*%(w*y*wt)
         }
-        yhat[i] <<- x[i, ]%*%b
+        yhat[i] <- x[i, ]%*%b
         if (det(t(x)%*%(w*x*wt))==0){
-          s[i] <<- 0
+          s_s <- get("s")
+          s_s[i] <- 0
+          assign("s", s_s, envir=parent.frame())
         }
         else{
-          s[i] <<- (x[i,]%*%solve(t(x)%*%(w*x*wt))%*%t(x*w*wt))[i]
+          s_s <- get("s")
+          s_s[i] <- (x[i,]%*%solve(t(x)%*%(w*x*wt))%*%t(x*w*wt))[i]
+          assign("s", s_s, envir=parent.frame())
         }
         next
       }
@@ -349,8 +361,8 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
           cont2 <- 1
           while (abs(ddev)>0.000001 & cont2<100){
             uj <- ifelse(uj>E^100, E^100, uj)
-            ai <<- as.vector((uj/(1+alpha*uj))+(y-uj)*(alpha*uj/(1+2*alpha*uj+alpha^2*uj*uj)))
-            ai <<- ifelse(ai<=0, E^-5, ai)
+            assign("ai", as.vector((uj/(1+alpha*uj))+(y-uj)*(alpha*uj/(1+2*alpha*uj+alpha^2*uj*uj))), envir=parent.frame())
+            assign("ai", ifelse(ai<=0, E^-5, ai), envir=parent.frame())
             zj <- nj+(y-uj)/(ai*(1+alpha*uj))-yhat_beta+fi
             if (det(t(x)%*%(w*ai*x*wt))==0){
               b <- rep(0, nvar)
@@ -382,13 +394,21 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
           cont <- cont+1
           ddpar <- par-parold
         }
-        yhat[i] <<- uj[i]
-        alphai[i, 2] <<- alpha
+        yhat_i <- get("yhat")
+        yhat_i[i] <- uj[i]
+        assign("yhat", yhat_i, envir=parent.frame())
+        alphai_i <- get("alphai")
+        alphai_i[i, 2] <- alpha
+        assign("alphai", alphai_i, envir=parent.frame())
         if (det(t(x)%*%(w*ai*x*wt))==0){
-          s[i] <<- 0
+          s_s <- get("s")
+          s_s[i] <- 0
+          assign("s", s_s, envir=parent.frame())
         }
         else{
-          s[i] <<- (x[i, ]%*%solve(t(x)%*%(w*ai*x*wt))%*%t(x*w*ai*wt))[i]
+          s_s <- get("s")
+          s_s[i] <- (x[i, ]%*%solve(t(x)%*%(w*ai*x*wt))%*%t(x*w*ai*wt))[i]
+          assign("s", s_s, envir=parent.frame())
         }
         next
       }
@@ -401,8 +421,8 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
         while (abs(ddev)>0.000001 & cont<100){
           cont <- cont+1
           uj <- ifelse(uj>E^100, E^100, uj)
-          ai <<- as.vector(uj*(1-uj))
-          ai <<- ifelse(ai<=0, E^-5, ai)
+          assign("ai", as.vector(uj*(1-uj)), envir=parent.frame())
+          assign("ai", ifelse(ai<=0, E^-5, ai), envir=parent.frame())
           zj <- nj+(y-uj)/ai-yhat_beta+fi
           if (det(t(x)%*%(w*ai*x*wt))==0){
             b <- rep(0, nvar)
@@ -428,19 +448,25 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
             ddev <- dev-olddev
           }
         }
-        yhat[i] <<- uj[i]
+        yhat_i <- get("yhat")
+        yhat_i[i] <- uj[i]
+        assign("yhat", yhat_i, envir=parent.frame())
         if (det(t(x)%*%(w*ai*x*wt))==0){
-          s[i] <<- 0
+          s_s <- get("s")
+          s_s[i] <- 0
+          assign("s", s_s, envir=parent.frame())
         }
         else{
-          s[i] <<- (x[i,]%*%solve(t(x)%*%(w*ai*x*wt))%*%t(x*w*wt*ai))[i]
+          s_s <- get("s")
+          s_s[i] <- (x[i,]%*%solve(t(x)%*%(w*ai*x*wt))%*%t(x*w*wt*ai))[i]
+          assign("s", s_s, envir=parent.frame())
         }
         next
       }
       if (i==1){
-        max_dist <<- max(dx)
+        assign("max_dist", max(dx), envir=parent.frame())
       }
-      max_dist <<- max(max_dist, max(dx))
+      assign("max_dist", max(max_dist, max(dx)), envir=parent.frame())
     }
     if (model=="gaussian"){
       CV <- t((y-yhat)*wt)%*%(y-yhat)
@@ -663,26 +689,40 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
         uj <- x%*%b
         if (nvar==nvarg){
           if (det(t(x)%*%(w*x*wt))==0){
-            sm[i,] <<- rep(0, N)
-            mrj[i,] <<- matrix(0, N*nvar)
+            sm_i <- get("sm")
+            sm_i[i, ] <- rep(0, N)
+            assign("sm", sm_i, envir=parent.frame())
+            mrj_i <- get("mrj")
+            mrj_i[i, ] <- matrix(0, N*nvar)
+            assign("mrj", mrj_i, envir=parent.frame())
           }
           else{
             ej <- diag(nvar)
-            sm[i,] <<- (x[i,]%*%solve(t(x)%*%(w*x*wt))%*%t(x*w*wt))
-            sm3[i,] <<- t(diag((solve(t(x)%*%(w*x*wt))%*%t(x*w*wt))%*%t(solve(t(x)%*%(w*x*wt))%*%t(x*w*wt))))
+            sm_i <- get("sm")
+            sm_i[i, ] <- (x[i,]%*%solve(t(x)%*%(w*x*wt))%*%t(x*w*wt))
+            assign("sm", sm_i, envir=parent.frame())
+            sm3_i <- get("sm3")
+            sm3_i[i, ] <- t(diag((solve(t(x)%*%(w*x*wt))%*%t(x*w*wt))%*%t(solve(t(x)%*%(w*x*wt))%*%t(x*w*wt))))
+            assign("sm3", sm3_i, envir=parent.frame())
             for (jj in 1:nvar){
               m1 <- (jj-1)*N+1
               m2 <- m1+(N-1)
-              mrj[i, m1:m2] <<- (x[i,jj]*ej[jj,])%*%solve(t(x)%*%(w*x*wt))%*%t(x*w*wt)
+              mrj_i <- get("mrj")
+              mrj_i[i, m1:m2] <- (x[i,jj]*ej[jj,])%*%solve(t(x)%*%(w*x*wt))%*%t(x*w*wt)
+              assign("mrj", mrj_i, envir=parent.frame())
             }
           }
         }
         else{
           if (det(t(x)%*%(w*x*wt))==0){
-            rj[i,] <<- rep(0, N)
+            rj_i <- get("rj")
+            rj_i[i,] <- rep(0, N)
+            assign("rj", rj_i, envir=parent.frame())
           }
           else{
-            rj[i,] <<- (x[i,]%*%solve(t(x)%*%(w*x*wt))%*%t(x*w*wt))
+            rj_i <- get("rj")
+            rj_i[i,] <- (x[i,]%*%solve(t(x)%*%(w*x*wt))%*%t(x*w*wt))
+            assign("rj", rj_i, envir=parent.frame())
           }
         }
       }
@@ -745,8 +785,8 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
           cont2 <- 0
           while (abs(ddev)>0.000001 & cont2<100){
             uj <- ifelse(uj>E^100, E^100, uj)
-            ai <<- as.vector((uj/(1+alpha*uj))+(y-uj)*(alpha*uj/(1+2*alpha*uj+alpha^2*uj*uj)))
-            ai <<- ifelse(ai<=0, E^-5, ai)
+            assign("ai", as.vector((uj/(1+alpha*uj))+(y-uj)*(alpha*uj/(1+2*alpha*uj+alpha^2*uj*uj))), envir=parent.frame())
+            assign("ai", ifelse(ai<=0, E^-5, ai), envir=parent.frame())
             zj <- nj+(y-uj)/(ai*(1+alpha*uj))-yhat_beta+fi
             if (det(t(x)%*%(w*ai*x*wt))==0){
               b <- rep(0, nvar)
@@ -774,26 +814,40 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
         }
         if (nvar==nvarg){
           if (det(t(x)%*%(w*ai*x*wt))==0){
-            sm[i,] <<- c(0, N)
-            mrj[i,] <<- rep(0, N*nvar)
+            sm_i <- get("sm")
+            sm_i[i, ] <- c(0, N)
+            assign("sm", sm_i, envir=parent.frame())
+            mrj_i <- get("mrj")
+            mrj_i[i, ] <- rep(0, N*nvar)
+            assign("mrj", mrj_i, envir=parent.frame())
           }
           else{
             ej <- diag(nvar)
-            sm[i,] <<- (x[i,]%*%solve(t(x)%*%(w*ai*x*wt))%*%t(x*w*wt*ai))
-            sm3[i,] <<- t(diag((solve(t(x)%*%(w*ai*x*wt))%*%t(x*w*wt*ai))%*%diag(1/ai)%*%t(solve(t(x)%*%(w*ai*x*wt))%*%t(x*w*wt*ai))))
+            sm_i <- get("sm")
+            sm_i[i, ] <- (x[i,]%*%solve(t(x)%*%(w*ai*x*wt))%*%t(x*w*wt*ai))
+            assign("sm", sm_i, envir=parent.frame())
+            sm3_i <- get("sm3")
+            sm3_i[i, ] <- t(diag((solve(t(x)%*%(w*ai*x*wt))%*%t(x*w*wt*ai))%*%diag(1/ai)%*%t(solve(t(x)%*%(w*ai*x*wt))%*%t(x*w*wt*ai))))
+            assign("sm3", sm3_i, envir=parent.frame())
             for (jj in 1:nvar){
               m1 <- (jj-1)*N+1
               m2 <- m1+(N-1)
-              mrj[i, m1:m2] <<- (x[i,jj]*ej[jj,])%*%solve(t(x)%*%(w*ai*x*wt))%*%t(x*w*wt*ai)
+              mrj_i <- get("mrj")
+              mrj_i[i, m1:m2] <- (x[i,jj]*ej[jj,])%*%solve(t(x)%*%(w*ai*x*wt))%*%t(x*w*wt*ai)
+              assign("mrj", mrj_i, envir=parent.frame())
             }
           }
         }
         else{
           if (det(t(x)%*%(w*ai*x*wt))==0){
-            rj[i,] <<- rep(0, N)
+            rj_i <- get("rj")
+            rj_i[i,] <- rep(0, N)
+            assign("rj", rj_i, envir=parent.frame())
           }
           else{
-            rj[i,] <<- (x[i,]%*%solve(t(x)%*%(w*ai*x*wt))%*%t(x*w*wt*ai))
+            rj_i <- get("rj")
+            rj_i[i,] <- (x[i,]%*%solve(t(x)%*%(w*ai*x*wt))%*%t(x*w*wt*ai))
+            assign("rj", rj_i, envir=parent.frame())
           }
         }
         if (model=="negbin"){
@@ -803,9 +857,9 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
             hess <- ifelse(hess==0, E^-23, hess)
           }
           sealpha <- sqrt(1/abs(hess))/(par^2)
-          alphai[i,1] <<- i
-          alphai[i,2] <<- alpha
-          alphai[i,3] <<- sealpha
+          alphai[i,1] <- i
+          alphai[i,2] <- alpha
+          alphai[i,3] <- sealpha
         }
       }
       else{ #else if (model=="logistic"){
@@ -817,8 +871,8 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
         while (abs(ddev)>0.000001 & cont<100){
           cont <- cont+1
           uj <- ifelse(uj>E^100, E^100, uj)
-          ai <<- as.vector(uj*(1-uj))
-          ai <<- ifelse(ai<=0, E^-5, ai)
+          ai <- as.vector(uj*(1-uj))
+          ai <- ifelse(ai<=0, E^-5, ai)
           zj <- nj+(y-uj)/ai-yhat_beta+fi
           if (det(t(x)%*%(w*ai*x*wt))==0){
             b <- rep(0, nvar)
@@ -846,26 +900,26 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
         }
         if (nvar==nvarg){
           if (det(t(x)%*%(w*ai*x*wt))==0){
-            sm[i,] <<- rep(0, N)
-            mrj[i,] <<- matrix(0, N*nvar)
+            sm[i,] <- rep(0, N)
+            mrj[i,] <- matrix(0, N*nvar)
           }
           else{
             ej <- diag(nvar)
-            sm[i,] <<- x[i,]%*%solve(t(x)%*%(w*ai*x*wt))%*%t(x*w*wt*ai)
-            sm3[i,] <<- t(diag((solve(t(x)%*%(w*ai*x*wt))%*%t(x*w*wt*ai))%*%diag(1/ai)%*%t(solve(t(x)%*%(w*ai*x*wt))%*%t(x*w*wt*ai))))
+            sm[i,] <- x[i,]%*%solve(t(x)%*%(w*ai*x*wt))%*%t(x*w*wt*ai)
+            sm3[i,] <- t(diag((solve(t(x)%*%(w*ai*x*wt))%*%t(x*w*wt*ai))%*%diag(1/ai)%*%t(solve(t(x)%*%(w*ai*x*wt))%*%t(x*w*wt*ai))))
             for (jj in 1:nvar){
               m1 <- (jj-1)*N+1
               m2 <- m1+(N-1)
-              mrj[i, m1:m2] <<- (x[i,jj]*ej[jj,])%*%solve(t(x)%*%(w*ai*x*wt))%*%t(x*w*wt*ai)
+              mrj[i, m1:m2] <- (x[i,jj]*ej[jj,])%*%solve(t(x)%*%(w*ai*x*wt))%*%t(x*w*wt*ai)
             }
           }
         }
         else{
           if (det(t(x)%*%(w*ai*x*wt))==0){
-            rj[i,] <<- rep(0, N)
+            rj[i,] <- rep(0, N)
           }
           else{
-            rj[i,] <<- (x[i,]%*%solve(t(x)%*%(w*ai*x*wt))%*%t(x*w*wt*ai))
+            rj[i,] <- (x[i,]%*%solve(t(x)%*%(w*ai*x*wt))%*%t(x*w*wt*ai))
           }
         }
       }
@@ -873,7 +927,7 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
       m2 <- m1+(nvar-1)
       bim[m1:m2] <- b
       yhatm[i] <- uj[i]
-      yhat[i] <<- uj[i]
+      yhat[i] <- uj[i]
     }
     beta <- matrix(bim, N, byrow=T)
     yhbeta <- cbind(yhatm, beta)
@@ -881,7 +935,7 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
   }
   if (!mgwr){
     finb <- rep(0, N)
-    yhat_beta <<- Offset
+    yhat_beta <- Offset
     if (!is.null(h)){
       hh <- h
     }
@@ -891,7 +945,7 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
     header <- append(header, "General Bandwidth")
     output <- append(output, hh)
     names(output) <- "general_bandwidth"
-    yhat_beta <<- gwr(hh,Y,X,finb)
+    yhat_beta <- gwr(hh,Y,X,finb)
     beta <- yhat_beta[,2:(nvarg+1)]
     Fi <- X*beta
     mband <- hh
@@ -899,7 +953,7 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
   }
   else{
     finb <- rep(0, N)
-    yhat_beta <<- Offset
+    yhat_beta <- Offset
     if (!is.null(h)){
       hh <- h
     }
@@ -910,7 +964,7 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
     output <- append(output, hh)
     names(output) <- "general_bandwidth"
     #computing residuals
-    yhat_beta <<- gwr(hh, Y, X, finb)
+    yhat_beta <- gwr(hh, Y, X, finb)
     error <- Y-yhat_beta[ ,1]
     beta <- yhat_beta[ ,2:(nvarg+1)]
     Fi <- X*beta
@@ -936,33 +990,33 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
           else{
             mband[i] <- GSS(ferror, as.matrix(X[,i]), finb)
           }
-          yhat_beta <<- gwr(mband[i], ferror, as.matrix(X[,i]), finb)
+          yhat_beta <- gwr(mband[i], ferror, as.matrix(X[,i]), finb)
           beta[,i] <- yhat_beta[,2]
           Fi[,i] <- X[,i]*beta[,i]
           error <- Y-apply(Fi, 1, sum)
           m1 <- (i-1)*N+1
           m2 <- m1+(N-1)
           mrj2 <- mrj[,m1:m2]
-          mrj[,m1:m2] <<- rj%*%mrj[,m1:m2]+rj-rj%*%sm
-          sm <<- sm-mrj2+mrj[,m1:m2]
+          mrj[,m1:m2] <- rj%*%mrj[,m1:m2]+rj-rj%*%sm
+          sm <- sm-mrj2+mrj[,m1:m2]
           Cm[,m1:m2] <- (1/X[,i])*mrj[,m1:m2]
         }
         else{ #else if (model=="poisson" | model=="negbin" | model=="logistic"){
-          yhat_beta <<- (apply(Fi, 1, sum)+Offset)
+          yhat_beta <- (apply(Fi, 1, sum)+Offset)
           if (!is.null(h)){
             mband[i] <- h
           }
           else{
             mband[i] <- GSS(Y, as.matrix(X[,i]), Fi[,i])
           }
-          yhat_beta <<- gwr(mband[i], Y, as.matrix(X[,i]), Fi[,i])
+          yhat_beta <- gwr(mband[i], Y, as.matrix(X[,i]), Fi[,i])
           beta[,i] <- yhat_beta[,2]
           Fi[,i] <- X[,i]*beta[,i]
           m1 <- (i-1)*N+1
           m2 <- m1+(N-1)
           mrj2 <- mrj[,m1:m2]
-          mrj[,m1:m2] <<- rj%*%mrj[,m1:m2]+rj-rj%*%sm
-          sm <<- sm-mrj2+mrj[,m1:m2]
+          mrj[,m1:m2] <- rj%*%mrj[,m1:m2]+rj-rj%*%sm
+          sm <- sm-mrj2+mrj[,m1:m2]
           Cm[,m1:m2] <- (1/X[,i])*mrj[,m1:m2]
           mAi[,i] <- ai
         }
@@ -975,13 +1029,13 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
     }
     mband_socf <- mband_socf[-1, ]
     if (is.null(dim(mband_socf))){
-      band <<- as.data.frame(t(mband_socf))
+      band <- as.data.frame(t(mband_socf))
     }
     else{
-      band <<- as.data.frame(mband_socf)
+      band <- as.data.frame(mband_socf)
     }
-    names(band) <<- c("Intercept", XVAR, "socf")
-    rownames(band) <<- NULL
+    names(band) <- c("Intercept", XVAR, "socf")
+    rownames(band) <- NULL
     header <- append(header, "Bandwidth")
     output <- append(output, list(band))
     names(output)[length(output)] <- "band"
@@ -1309,8 +1363,8 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
   }
   bistdt <- cbind(COORD, beta, stdbm, tstat, probt)
   colname1 <- c("Intercept", XVAR)
-  parameters2 <<- as.data.frame(bistdt)
-  names(parameters2) <<- c('x', 'y', colname1, paste('std_', colname1, sep=''), paste('tstat_', colname1, sep=''), paste('probt_', colname1, sep=''))
+  parameters2 <- as.data.frame(bistdt)
+  names(parameters2) <- c('x', 'y', colname1, paste('std_', colname1, sep=''), paste('tstat_', colname1, sep=''), paste('probt_', colname1, sep=''))
   sig <- matrix("not significant at 90%", N, nvarg)
   for (i in 1:N){
     for (j in 1:nvarg){
@@ -1328,8 +1382,8 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
       }
     }
   }
-  sig_parameters2 <<- as.data.frame(sig)
-  names(sig_parameters2) <<- c(paste('sig_', colname1, sep=''))
+  sig_parameters2 <- as.data.frame(sig)
+  names(sig_parameters2) <- c(paste('sig_', colname1, sep=''))
   if (model=='negbin'){
     atstat <- alphai[,2]/alphai[,3]
     aprobtstat <- 2*(1-pnorm(abs(atstat)))
@@ -1349,22 +1403,22 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
       }
     }
     alphai <- cbind(alphai, atstat, aprobtstat)
-    Alpha <<- as.data.frame(alphai)
-    names(Alpha) <<- c("id", "alpha", "std", "tstat", "probt")
-    sig_alpha <<- as.data.frame(siga)
-    names(sig_alpha) <<- "sig_alpha"
+    Alpha <- as.data.frame(alphai)
+    names(Alpha) <- c("id", "alpha", "std", "tstat", "probt")
+    sig_alpha <- as.data.frame(siga)
+    names(sig_alpha) <- "sig_alpha"
   }
   ###################################
-  min_bandwidth <<- as.data.frame(t(mband))
+  min_bandwidth <- as.data.frame(t(mband))
   if (!mgwr){
-    names(min_bandwidth) <<- 'Intercept'
+    names(min_bandwidth) <- 'Intercept'
   }
   else{
-    names(min_bandwidth) <<- colname1
+    names(min_bandwidth) <- colname1
   }
-  parameters2 <<- cbind(parameters2, sig_parameters2)
+  parameters2 <- cbind(parameters2, sig_parameters2)
   if (model=='negbin'){
-    Alpha <<- cbind(Alpha, sig_alpha)
+    Alpha <- cbind(Alpha, sig_alpha)
   }
   i <- 1
   for (element in output){
@@ -1374,5 +1428,3 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
   }
   invisible(output)
 }
-
-
