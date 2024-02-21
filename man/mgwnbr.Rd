@@ -34,7 +34,7 @@ mgwnbr(
 
 \item{globalmin}{logical value indicating whether to find a global minimum in the optimization process, default value is \code{TRUE}.}
 
-\item{method}{indicates the method to be used for the bandwidth calculation (\code{adaptive\_bsq}, \code{fixed\_bsq}, \code{fixed\_g}).}
+\item{method}{indicates the method to be used for the bandwidth calculation (\code{adaptive_bsq}, \code{fixed_bsq}, \code{fixed_g}).}
 
 \item{model}{indicates the model to be used for the regression (\code{gaussian}, \code{poisson}, \code{negbin}, \code{logistic}), default value is\code{"negbin"}.}
 

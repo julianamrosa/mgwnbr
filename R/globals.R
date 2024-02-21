@@ -1,0 +1,1 @@
+globalVariables(c("yhat", "s", "ai", "alphai", "max_dist", "mrj", "rj", "sm", "sm3"))
