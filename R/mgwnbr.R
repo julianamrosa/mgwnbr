@@ -1514,6 +1514,6 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
   if (model=='negbin'){
     Alpha <- cbind(Alpha, sig_alpha)
   }
-  message("NOTE: The denominator degrees of freedom for the t tests is ", dfg)
+  message("NOTE: The denominator degrees of freedom for the t tests is ", dfg, ".")
   invisible(output)
 }
