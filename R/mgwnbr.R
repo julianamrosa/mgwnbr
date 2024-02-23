@@ -60,12 +60,12 @@
 #'
 #' @importFrom sp spDistsN1
 #'
-#' @importFrom stats model.extract model.matrix pnorm pt qt quantile
+#' @importFrom stats model.extract model.matrix pnorm pt qt quantile dist
 #'
 #'
 #' @export
 
-mgwnbr6 <- function(data, formula, weight=NULL, lat, long,
+mgwnbr <- function(data, formula, weight=NULL, lat, long,
                     globalmin=TRUE, method, model="negbin",
                     mgwr=TRUE, bandwidth="cv", offset=NULL,
                     distancekm=FALSE, int=50, h=NULL){

@@ -2,6 +2,7 @@
 
 export(mgwnbr)
 importFrom(sp,spDistsN1)
+importFrom(stats,dist)
 importFrom(stats,model.extract)
 importFrom(stats,model.matrix)
 importFrom(stats,pnorm)
