@@ -1291,7 +1291,7 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
     stdalpha <- alphai[,3]
     stdbeta2 <- cbind(stdbeta, stdalpha)
   }
-  qntls <- apply(stdbeta2, 2, quantile, c(0.25, 0.5, 0.75))
+  qntls <- apply(stdbeta2, 2, quantile, c(0.25, 0.5, 0.75), na.rm=TRUE) #flag: article
   IQR <- (qntls[3,]-qntls[1,])
   qntls <- rbind(round(qntls, 6), IQR=round(IQR, 6))
   descripts <- rbind(apply(stdbeta2, 2, mean), apply(stdbeta2, 2, min), apply(stdbeta2, 2, max))
