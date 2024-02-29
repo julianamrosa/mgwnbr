@@ -1058,7 +1058,7 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
           yhat_beta <- gwr(mband[i], ferror, as.matrix(X[,i]), finb)
           beta[,i] <- yhat_beta[,2]
           Fi[,i] <- X[,i]*beta[,i]
-          error <- Y-apply(Fi, 1, sum, na.rm=T)
+          error <- Y-apply(Fi, 1, sum)
           m1 <- (i-1)*N+1
           m2 <- m1+(N-1)
           mrj2 <- mrj[,m1:m2]
@@ -1067,7 +1067,7 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
           Cm[,m1:m2] <- (1/X[,i])*mrj[,m1:m2]
         }
         else{ #else if (model=="poisson" | model=="negbin" | model=="logistic"){
-          yhat_beta <- (apply(Fi, 1, sum, na.rm=T)+Offset)
+          yhat_beta <- (apply(Fi, 1, sum)+Offset)
           if (!is.null(h)){
             mband[i] <- h
           }
@@ -1107,7 +1107,7 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
   }
   v1 <- sum(diag(sm))
   if (model=='gaussian'){
-    yhat <- apply(Fi, 1, sum, na.rm=T)
+    yhat <- apply(Fi, 1, sum)
     res <- Y-yhat
     rsqr1 <- t(res*wt)%*%res
     ym <- t(Y*wt)%*%Y
@@ -1120,9 +1120,9 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
   for (jj in 1:nvarg){
     m1 <- (jj-1)*N+1
     m2 <- m1+(N-1)
-    ENP[jj] <- sum(diag(mrj[,m1:m2]))
+    ENP[jj] <- sum(diag(mrj[,m1:m2]), na.rm=T) #flag
     if (!mgwr){
-      ENP[jj] <- sum(diag(sm))
+      ENP[jj] <- sum(diag(sm), na.rm=T) #flag
     }
     if (model=='gaussian'){
       if (!mgwr){
@@ -1156,7 +1156,7 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
     names(output)[length(output)] <- "measures"
   }
   else if (model=='poisson'){
-    yhat <- exp(apply(Fi, 1, sum, na.rm=T)+Offset)
+    yhat <- exp(apply(Fi, 1, sum)+Offset)
     tt <- Y/yhat
     tt <- ifelse(tt==0, E^-10, tt)
     dev <- 2*sum(Y*log(tt)-(Y-yhat))
@@ -1179,7 +1179,7 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
     names(output)[length(output)] <- "measures"
   }
   else if (model=='negbin'){
-    yhat <- exp(apply(Fi, 1, sum, na.rm=T)+Offset)
+    yhat <- exp(apply(Fi, 1, sum)+Offset)
     tt <- Y/yhat
     tt <- ifelse(tt==0, E^-10, tt)
     dev <- 2*sum(Y*log(tt)-(Y+1/alphai[,2])*log((1+alphai[,2]*Y)/(1+alphai[,2]*yhat)))
@@ -1202,7 +1202,7 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
     names(output)[length(output)] <- "measures"
   }
   else{ #else if (model=='logistic'){
-    yhat <- exp(apply(Fi, 1, sum, na.rm=T))/(1+exp(apply(Fi, 1, sum, na.rm=T)))
+    yhat <- exp(apply(Fi, 1, sum))/(1+exp(apply(Fi, 1, sum)))
     tt <- Y/yhat
     tt <- ifelse(tt==0, E^-10, tt)
     yhat2 <- ifelse(yhat==1, 0.99999, yhat)
@@ -1231,8 +1231,8 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
     output <- append(output, list(stats_measures))
     names(output)[length(output)] <- "measures"
   }
-  ENP[nvarg+1] <- sum(diag(sm))
-  ENP[nvarg+2] <- sum(diag(Sm2))
+  ENP[nvarg+1] <- sum(diag(sm), na.rm=T)
+  ENP[nvarg+2] <- sum(diag(Sm2), na.rm=T)
   if (model=='negbin'){
     ENP <- c(ENP, (v1/nvarg))
     names(ENP) <- c('Intercept', XVAR, 'MGWR', 'GWR', 'alpha')
@@ -1262,10 +1262,10 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
     alpha <- alphai[,2]
     beta2 <- cbind(beta, alpha)
   }
-  qntl <- apply(beta2, 2, quantile, c(0.25, 0.5, 0.75), na.rm=T)
+  qntl <- apply(beta2, 2, quantile, c(0.25, 0.5, 0.75))
   IQR <- (qntl[3,]-qntl[1,])
   qntl <- rbind(round(qntl, 6), IQR=round(IQR, 6))
-  descriptb <- rbind(apply(beta2, 2, mean, na.rm=T), apply(beta2, 2, min, na.rm=T), apply(beta2, 2, max, na.rm=T))
+  descriptb <- rbind(apply(beta2, 2, mean), apply(beta2, 2, min), apply(beta2, 2, max))
   rownames(descriptb) <- c('Mean', 'Min', 'Max')
   if (model=='negbin'){
     colnames(qntl) <- c('Intercept', XVAR, 'alpha')
@@ -1291,10 +1291,10 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
     stdalpha <- alphai[,3]
     stdbeta2 <- cbind(stdbeta, stdalpha)
   }
-  qntls <- apply(stdbeta2, 2, quantile, c(0.25, 0.5, 0.75), na.rm=T) #flag: article
+  qntls <- apply(stdbeta2, 2, quantile, c(0.25, 0.5, 0.75), na.rm=TRUE) #flag: article
   IQR <- (qntls[3,]-qntls[1,])
   qntls <- rbind(round(qntls, 6), IQR=round(IQR, 6))
-  descripts <- rbind(apply(stdbeta2, 2, mean, na.rm=T), apply(stdbeta2, 2, min, na.rm=T), apply(stdbeta2, 2, max, na.rm=T))
+  descripts <- rbind(apply(stdbeta2, 2, mean), apply(stdbeta2, 2, min), apply(stdbeta2, 2, max))
   rownames(descripts) <- c('Mean', 'Min', 'Max')
   header <- append(header, "alpha-level=0.05")
   output <- append(output, list(malpha))
