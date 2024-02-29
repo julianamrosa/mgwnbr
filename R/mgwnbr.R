@@ -1120,9 +1120,9 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
   for (jj in 1:nvarg){
     m1 <- (jj-1)*N+1
     m2 <- m1+(N-1)
-    ENP[jj] <- sum(diag(mrj[,m1:m2]), na.rm=T) #flag
+    ENP[jj] <- sum(diag(mrj[,m1:m2]))
     if (!mgwr){
-      ENP[jj] <- sum(diag(sm), na.rm=T) #flag
+      ENP[jj] <- sum(diag(sm))
     }
     if (model=='gaussian'){
       if (!mgwr){
@@ -1231,8 +1231,8 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
     output <- append(output, list(stats_measures))
     names(output)[length(output)] <- "measures"
   }
-  ENP[nvarg+1] <- sum(diag(sm), na.rm=T)
-  ENP[nvarg+2] <- sum(diag(Sm2), na.rm=T)
+  ENP[nvarg+1] <- sum(diag(sm))
+  ENP[nvarg+2] <- sum(diag(Sm2))
   if (model=='negbin'){
     ENP <- c(ENP, (v1/nvarg))
     names(ENP) <- c('Intercept', XVAR, 'MGWR', 'GWR', 'alpha')
@@ -1291,7 +1291,7 @@ mgwnbr <- function(data, formula, weight=NULL, lat, long,
     stdalpha <- alphai[,3]
     stdbeta2 <- cbind(stdbeta, stdalpha)
   }
-  qntls <- apply(stdbeta2, 2, quantile, c(0.25, 0.5, 0.75), na.rm=TRUE) #flag: article
+  qntls <- apply(stdbeta2, 2, quantile, c(0.25, 0.5, 0.75))
   IQR <- (qntls[3,]-qntls[1,])
   qntls <- rbind(round(qntls, 6), IQR=round(IQR, 6))
   descripts <- rbind(apply(stdbeta2, 2, mean), apply(stdbeta2, 2, min), apply(stdbeta2, 2, max))
