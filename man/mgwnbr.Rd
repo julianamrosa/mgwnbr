@@ -58,10 +58,12 @@ A list that contains:
 \item \code{band} - Bandwidth values for each covariate.
 \item \code{measures} - Goodness of fit statistics.
 \item \code{ENP} - Effective number of parameters.
+\item \code{mgwr_param_estimates} - MGWR parameter estimates.
 \item \code{qntls_mgwr_param_estimates} - Quantiles of MGWR parameter estimates.
 \item \code{descript_stats_mgwr_param_estimates} - Descriptive statistics of MGWR parameter estimates.
 \item \code{p_values} - P-values for the t tests on parameter significance.
 \item \code{t_critical} - Critical values for the t tests on parameter significance.
+\item \code{mgwr_se} - MGWR standard errors.
 \item \code{qntls_mgwr_se} - Quantiles of MGWR standard errors.
 \item \code{descript_stats_se} - Descriptive statistics of MGWR standard errors.
 \item \code{global_param_estimates} - Parameter estimates for the global model.
