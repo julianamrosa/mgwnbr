@@ -22,3 +22,5 @@ Imports: sp
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.1
 LazyData: true
+URL: https://github.com/julianamrosa/mgwnbr
+BugReports: https://github.com/julianamrosa/mgwnbr/issues
