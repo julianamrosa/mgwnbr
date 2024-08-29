@@ -3,9 +3,9 @@ Type: Package
 Title: Multiscale Geographically Weighted Negative Binomial Regression
 Version: 0.2.0
 Authors@R: c(
-	person("Juliana", "Magalhães Rosa", , "julianamrosa00@gmail.com", role=c("aut", "cre")),
-	person("Jéssica", "Vasconcelos de Abreu", , "jehh.vasconcelosabreu@gmail.com", role="aut"),
-	person("Alan", "Ricardo da Silva", , "alansilva@unb.br", role="aut"))
+	person("Juliana", "Rosa", , "julianamrosa00@gmail.com", role=c("aut", "cre")),
+	person("Jéssica", "Vasconcelos", , "jehh.vasconcelosabreu@gmail.com", role="aut"),
+	person("Alan", "da Silva", , "alansilva@unb.br", role="aut"))
 Maintainer: Juliana Rosa <julianamrosa00@gmail.com>
 Description: Fits a geographically weighted regression model with different scales
 	for each covariate. Uses the negative binomial distribution as default,
