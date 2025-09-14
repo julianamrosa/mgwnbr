@@ -7,18 +7,20 @@
 mgwnbr(
   data,
   formula,
-  weight = NULL,
-  lat,
   long,
+  lat,
+  band_method,
+  band_criterion = "cv",
+  distribution = "negbin",
   globalmin = TRUE,
-  method,
-  model = "negbin",
-  mgwr = TRUE,
-  bandwidth = "cv",
-  offset = NULL,
+  multiscale = TRUE,
   distancekm = FALSE,
-  int = 50,
-  h = NULL
+  weight = NULL,
+  offset = NULL,
+  id = NULL,
+  h = NULL,
+  max_int = 50,
+  tol = 10^-307
 )
 }
 \arguments{
@@ -26,46 +28,47 @@ mgwnbr(
 
 \item{formula}{regression model formula as in \code{lm}.}
 
-\item{weight}{name of the variable containing the sample weights, default value is \code{NULL}.}
+\item{long}{name of the variable containing the longitudes in the dataset.}
 
 \item{lat}{name of the variable containing the latitudes in the dataset.}
 
-\item{long}{name of the variable containing the longitudes in the dataset.}
+\item{band_method}{indicates the method to be used for the bandwidth calculation (\code{adaptive_bsq}, \code{fixed_bsq}, \code{fixed_g}).}
+
+\item{band_criterion}{indicates the criterion to be used for the bandwidth calculation (\code{cv}, \code{aic}), default value is \code{"cv"}.}
+
+\item{distribution}{indicates the probability distribution to be used for the regression (\code{gaussian}, \code{poisson}, \code{negbin}, \code{logistic}), default value is\code{"negbin"}.}
 
 \item{globalmin}{logical value indicating whether to find a global minimum in the optimization process, default value is \code{TRUE}.}
 
-\item{method}{indicates the method to be used for the bandwidth calculation (\code{adaptive_bsq}, \code{fixed_bsq}, \code{fixed_g}).}
-
-\item{model}{indicates the model to be used for the regression (\code{gaussian}, \code{poisson}, \code{negbin}, \code{logistic}), default value is\code{"negbin"}.}
-
-\item{mgwr}{logical value indicating if multiscale should be used (\code{TRUE}, \code{FALSE}), default value is \code{TRUE}.}
-
-\item{bandwidth}{indicates the criterion to be used for the bandwidth calculation (\code{cv}, \code{aic}), default value is \code{"cv"}.}
-
-\item{offset}{name of the variable containing the offset values, if null then is set to a vector of zeros, default value is \code{NULL}.}
+\item{multiscale}{logical value indicating if multiscale should be used (\code{TRUE}, \code{FALSE}), default value is \code{TRUE}.}
 
 \item{distancekm}{logical value indicating whether to calculate the distances in km, default value is \code{FALSE}.}
 
-\item{int}{integer indicating the number of iterations, default value is \code{50}.}
+\item{weight}{name of the variable containing the sample weights, default value is \code{NULL}.}
+
+\item{offset}{name of the variable containing the offset values, if null then is set to a vector of zeros, default value is \code{NULL}.}
+
+\item{id}{name of the variable containing the unique identifier of the observations in the dataset, default value is \code{NULL}.}
 
 \item{h}{integer indicating a predetermined bandwidth value, default value is \code{NULL}.}
+
+\item{max_int}{integer indicating the number of iterations, default value is \code{50}.}
+
+\item{tol}{numeric value indicating the tolerance for small determinants not being considered zero when calculating inverse matrices throughout the model execution, default value is \code{10^-307}.}
 }
 \value{
 A list that contains:
 
 \itemize{
-\item \code{general_bandwidth} - General bandwidth value.
 \item \code{band} - Bandwidth values for each covariate.
+\item \code{fitted_values} - MGWR fitted values.
+\item \code{mgwr_param_estimates} - MGWR parameter estimates.
+\item \code{mgwr_se} - MGWR standard errors.
+\item \code{general_bandwidth} - General bandwidth value.
 \item \code{measures} - Goodness of fit statistics.
 \item \code{ENP} - Effective number of parameters.
-\item \code{mgwr_param_estimates} - MGWR parameter estimates.
-\item \code{qntls_mgwr_param_estimates} - Quantiles of MGWR parameter estimates.
-\item \code{descript_stats_mgwr_param_estimates} - Descriptive statistics of MGWR parameter estimates.
-\item \code{p_values} - P-values for the t tests on parameter significance.
+\item \code{alpha_level_5_pct} - significance levels for the t tests on parameter significance.
 \item \code{t_critical} - Critical values for the t tests on parameter significance.
-\item \code{mgwr_se} - MGWR standard errors.
-\item \code{qntls_mgwr_se} - Quantiles of MGWR standard errors.
-\item \code{descript_stats_se} - Descriptive statistics of MGWR standard errors.
 \item \code{global_param_estimates} - Parameter estimates for the global model.
 \item \code{t_test_dfs} - Denominator degrees of freedom for the t tests.
 \item \code{global_measures} - Goodness of fit statistics for the global model.
@@ -77,24 +80,30 @@ Fits a geographically weighted regression model with different scales for each c
 \examples{
 ## Data
 
-
 data(georgia)
 
-for (var in c("PctFB", "PctBlack")){
-  georgia[, var] <- as.data.frame(scale(georgia[, var]))
-}
-
-
-## Model
+## MGWR Model
 
 mod <- mgwnbr(data=georgia, formula=PctBach~PctBlack+PctFB,
- lat="Y", long="X", globalmin=FALSE, method="adaptive_bsq", bandwidth="cv",
-  model="gaussian", mgwr=FALSE, h=136)
+              lat="Y", long="X", globalmin=FALSE, band_method="adaptive_bsq", band_criterion="cv",
+              distribution="gaussian", multiscale=TRUE, h=136)
 
 ## Bandwidths
 mod$general_bandwidth
 
 ## Goodness of fit measures
 mod$measures
+
+## GWNBR Model
+
+mod <- mgwnbr(data=georgia, formula=PctBach~PctBlack+PctFB,
+              lat="Y", long="X", globalmin=FALSE, band_method="adaptive_bsq", band_criterion="cv",
+              distribution="negbin", multiscale=FALSE, h=136)
+
+## GWPR Model
+
+mod <- mgwnbr(data=georgia, formula=PctBach~PctBlack+PctFB,
+              lat="Y", long="X", globalmin=FALSE, band_method="adaptive_bsq", band_criterion="cv",
+              distribution="poisson", multiscale=FALSE, h=136)
 
 }
