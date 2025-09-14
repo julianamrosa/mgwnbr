@@ -1,6 +1,6 @@
 #' Print method for summary.myclass objects
 #'
-#' @param x An object of class `summary.mgwnbr_model`.
+#' @param object An object of class `summary.mgwnbr_model`.
 #' @param ... Further arguments passed to print.
 #'
 #' @return The object (invisibly).
