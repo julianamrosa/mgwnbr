@@ -1,6 +1,6 @@
 #' Print method for mgwnbr_model objects
 #'
-#' @param object An object of class `mgwnbr_model`.
+#' @param x An object of class `mgwnbr_model`.
 #' @param ... Additional arguments passed to other methods.
 #'
 #' @return The object (invisibly).
@@ -8,32 +8,32 @@
 
 ## Método print ##
 
-print.mgwnbr_model <- function(object, ...) {
+print.mgwnbr_model <- function(x, ...) {
   cat("General Bandwidth:\n")
-  print(object$general_bandwidth)
-  if (!is.null(object$band)){
+  print(x$general_bandwidth)
+  if (!is.null(x$band)){
     cat("\nBandwidths for each Golden Section Search Iteration:\n")
-    print(object$band)
+    print(x$band)
   }
   cat("\nFitted Values:\n")
-  print(object$fitted_values)
+  print(x$fitted_values)
   cat("\nGoodness of Fit Measures:\n")
-  print(object$measures)
+  print(x$measures)
   cat("\nEffective Number of Parameters:\n")
-  print(object$ENP)
+  print(x$ENP)
   cat("\nParameter Estimates:\n")
-  print(object$mgwr_param_estimates)
+  print(x$mgwr_param_estimates)
   cat("\nAlpha Levels for Parameter Significance Tests:\n")
-  print(object$alpha_level_5_pct)
+  print(x$alpha_level_5_pct)
   cat("\nCritical Values for Parameter Significance Tests:\n")
-  print(object$t_critical)
+  print(x$t_critical)
   cat("\nStandard Errors for Parameter Estimates:\n")
-  print(object$mgwr_se)
+  print(x$mgwr_se)
   cat("\nGlobal Parameter Estimates:\n")
-  print(object$global_param_estimates)
+  print(x$global_param_estimates)
   cat("\nDenominator Degrees of Freedom for the T Tests:\n")
-  print(object$t_test_dfs)
+  print(x$t_test_dfs)
   cat("\nGoodness of Fit Statistics for the Global Model:\n")
-  print(object$global_measures)
-  invisible(object)
+  print(x$global_measures)
+  invisible(x)
 }

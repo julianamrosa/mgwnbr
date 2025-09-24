@@ -4,12 +4,12 @@
 \alias{print.summary.mgwnbr_model}
 \title{Print method for summary.myclass objects}
 \usage{
-\method{print}{summary.mgwnbr_model}(object, ...)
+\method{print}{summary.mgwnbr_model}(x, ...)
 }
 \arguments{
-\item{...}{Further arguments passed to print.}
-
 \item{x}{An object of class \code{summary.mgwnbr_model}.}
+
+\item{...}{Further arguments passed to print.}
 }
 \value{
 The object (invisibly).

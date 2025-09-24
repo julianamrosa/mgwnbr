@@ -67,7 +67,7 @@
 #'
 #' @importFrom sp spDistsN1
 #'
-#' @importFrom stats model.extract model.matrix pnorm pt qt quantile dist
+#' @importFrom stats model.extract model.matrix pnorm pt qt quantile dist median sd
 #'
 #'
 #' @export

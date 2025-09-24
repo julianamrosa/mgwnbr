@@ -4,10 +4,10 @@
 \alias{print.mgwnbr_model}
 \title{Print method for mgwnbr_model objects}
 \usage{
-\method{print}{mgwnbr_model}(object, ...)
+\method{print}{mgwnbr_model}(x, ...)
 }
 \arguments{
-\item{object}{An object of class \code{mgwnbr_model}.}
+\item{x}{An object of class \code{mgwnbr_model}.}
 
 \item{...}{Additional arguments passed to other methods.}
 }

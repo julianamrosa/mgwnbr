@@ -4,10 +4,10 @@
 \alias{summary.mgwnbr_model}
 \title{Summary method for mgwnbr_model objects}
 \usage{
-\method{summary}{mgwnbr_model}(object, ...)
+\method{summary}{mgwnbr_model}(x, ...)
 }
 \arguments{
-\item{object}{An object of class \code{mgwnbr_model}.}
+\item{x}{An object of class \code{mgwnbr_model}.}
 
 \item{...}{Additional arguments passed to other methods.}
 }
