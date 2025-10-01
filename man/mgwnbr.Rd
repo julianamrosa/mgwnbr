@@ -86,7 +86,7 @@ data(georgia)
 
 mod <- mgwnbr(data=georgia, formula=PctBach~PctBlack+PctFB,
               lat="Y", long="X", globalmin=FALSE, band_method="adaptive_bsq", band_criterion="cv",
-              distribution="gaussian", multiscale=TRUE, h=136)
+              distribution="gaussian", multiscale=TRUE, h=100)
 
 ## Bandwidths
 mod$general_bandwidth
@@ -96,14 +96,18 @@ mod$measures
 
 ## GWNBR Model
 
-mod <- mgwnbr(data=georgia[1:50, ], formula=PctBach~PctBlack+PctFB,
+\dontrun{
+mod <- mgwnbr(data=georgia, formula=PctBach~PctBlack+PctFB,
               lat="Y", long="X", globalmin=FALSE, band_method="adaptive_bsq", band_criterion="cv",
-              distribution="negbin", multiscale=FALSE, h=32)
+              distribution="negbin", multiscale=FALSE)
+}
 
 ## GWPR Model
 
+\dontrun{
 mod <- mgwnbr(data=georgia, formula=PctBach~PctBlack+PctFB,
               lat="Y", long="X", globalmin=FALSE, band_method="adaptive_bsq", band_criterion="cv",
-              distribution="poisson", multiscale=FALSE, h=136)
+              distribution="poisson", multiscale=FALSE)
+}
 
 }
