@@ -55,9 +55,9 @@
 #'
 #' ## GWNBR Model
 #'
-#' mod <- mgwnbr(data=georgia, formula=PctBach~PctBlack+PctFB,
+#' mod <- mgwnbr(data=georgia[1:50, ], formula=PctBach~PctBlack+PctFB,
 #'               lat="Y", long="X", globalmin=FALSE, band_method="adaptive_bsq", band_criterion="cv",
-#'               distribution="negbin", multiscale=FALSE, h=136)
+#'               distribution="negbin", multiscale=FALSE, h=32)
 #'
 #' ## GWPR Model
 #'
